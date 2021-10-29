@@ -15,7 +15,6 @@ import 'package:wallet_connect/models/session/wc_session.dart';
 import 'package:wallet_connect/models/session/wc_session_request.dart';
 import 'package:wallet_connect/models/session/wc_session_update.dart';
 import 'package:wallet_connect/models/wc_encryption_payload.dart';
-import 'package:wallet_connect/models/wc_method.dart';
 import 'package:wallet_connect/models/wc_peer_meta.dart';
 import 'package:wallet_connect/models/wc_socket_message.dart';
 import 'package:wallet_connect/wc_cipher.dart';
@@ -30,9 +29,12 @@ typedef EthTransaction = void Function(
     int id, WCEthereumTransaction transaction);
 typedef CustomRequest = void Function(int id, String payload);
 
+typedef OnRequest = void Function(String encodedJson);
+
 class WCClient {
   late WebSocketChannel _webSocket;
   Stream _socketStream = Stream.empty();
+
   // ignore: close_sinks
   WebSocketSink? _socketSink;
   WCSession? _session;
@@ -44,30 +46,29 @@ class WCClient {
   String? _remotePeerId;
   bool _isConnected = false;
 
-  WCClient({
-    this.onSessionRequest,
-    this.onFailure,
-    this.onDisconnect,
-    this.onEthSign,
-    this.onEthSignTransaction,
-    this.onEthSendTransaction,
-    this.onCustomRequest,
-    this.onConnect,
-  });
+  WCClient(
+      {this.onSessionRequest,
+      this.onFailure,
+      this.onDisconnect,
+      this.onConnect,
+      this.onRequest});
 
   final SessionRequest? onSessionRequest;
   final SocketError? onFailure;
   final SocketClose? onDisconnect;
-  final EthSign? onEthSign;
-  final EthTransaction? onEthSignTransaction, onEthSendTransaction;
-  final CustomRequest? onCustomRequest;
   final Function()? onConnect;
+  final OnRequest? onRequest;
 
   WCSession? get session => _session;
+
   WCPeerMeta? get peerMeta => _peerMeta;
+
   WCPeerMeta? get remotePeerMeta => _remotePeerMeta;
+
   int? get chainId => _chainId;
+
   String? get peerId => _peerId;
+
   String? get remotePeerId => _remotePeerId;
 
   connectNewSession({
@@ -134,7 +135,7 @@ class WCClient {
     );
     final request = JsonRpcRequest(
       id: DateTime.now().millisecondsSinceEpoch,
-      method: WCMethod.SESSION_UPDATE,
+      method: 'wc_sessionUpdate',
       params: [param.toJson()],
     );
     return _encryptAndSend(jsonEncode(request.toJson()));
@@ -280,8 +281,6 @@ class WCClient {
       final request = JsonRpcRequest.fromJson(jsonDecode(payload));
       if (request.method != null) {
         _handleRequest(request);
-      } else {
-        onCustomRequest?.call(request.id, payload);
       }
     } on InvalidJsonRpcParamsException catch (e) {
       _invalidParams(e.requestId);
@@ -292,7 +291,7 @@ class WCClient {
     if (request.params == null) throw InvalidJsonRpcParamsException(request.id);
 
     switch (request.method) {
-      case WCMethod.SESSION_REQUEST:
+      case 'wc_sessionRequest':
         final param = WCSessionRequest.fromJson(request.params!.first);
         print('SESSION_REQUEST $param');
         _handshakeId = request.id;
@@ -301,69 +300,62 @@ class WCClient {
         _chainId = param.chainId;
         onSessionRequest?.call(request.id, param.peerMeta);
         break;
-      case WCMethod.SESSION_UPDATE:
+      case 'wc_sessionUpdate':
         final param = WCSessionUpdate.fromJson(request.params!.first);
         print('SESSION_UPDATE $param');
         if (!param.approved) {
           killSession();
         }
         break;
-      case WCMethod.ETH_SIGN:
-        print('ETH_SIGN $request');
-        final params = request.params!.cast<String>();
-        if (params.length < 2) {
-          throw InvalidJsonRpcParamsException(request.id);
-        }
-
-        onEthSign?.call(
-          request.id,
-          WCEthereumSignMessage(
-            raw: params,
-            type: WCSignType.MESSAGE,
-          ),
-        );
+      case "eth_sign":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'signMessage',
+          'object': {'data': request.params![1]}
+        }));
         break;
-      case WCMethod.ETH_PERSONAL_SIGN:
-        print('ETH_PERSONAL_SIGN $request');
-        final params = request.params!.cast<String>();
-        if (params.length < 2) {
-          throw InvalidJsonRpcParamsException(request.id);
-        }
-
-        onEthSign?.call(
-          request.id,
-          WCEthereumSignMessage(
-            raw: params,
-            type: WCSignType.PERSONAL_MESSAGE,
-          ),
-        );
+      case "personal_sign":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'signPersonalMessage',
+          'object': {'data': request.params![0]}
+        }));
         break;
-      case WCMethod.ETH_SIGN_TYPE_DATA:
-        print('ETH_SIGN_TYPE_DATA $request');
-        final params = request.params!.cast<String>();
-        if (params.length < 2) {
-          throw InvalidJsonRpcParamsException(request.id);
-        }
-
-        onEthSign?.call(
-          request.id,
-          WCEthereumSignMessage(
-            raw: params,
-            type: WCSignType.TYPED_MESSAGE,
-          ),
-        );
+      case "personal_ecRecover":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'ecRecover',
+          'object': {
+            'signature': request.params![1],
+            'message': request.params![0],
+          }
+        }));
         break;
-      case WCMethod.ETH_SIGN_TRANSACTION:
-        print('ETH_SIGN_TRANSACTION $request');
-        final param = WCEthereumTransaction.fromJson(request.params!.first);
-        onEthSignTransaction?.call(request.id, param);
+      case "eth_signTypedData":
+      case "eth_signTypedData_v3":
+      case "eth_signTypedData_v4":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'signTypedMessage',
+          'object': {'raw': request.params![1], 'wcMethodName': request.method}
+        }));
         break;
-      case WCMethod.ETH_SEND_TRANSACTION:
-        print('ETH_SEND_TRANSACTION $request');
-        final param = WCEthereumTransaction.fromJson(request.params!.first);
-        onEthSendTransaction?.call(request.id, param);
+      case "eth_sendTransaction":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'eth_sendTransaction',
+          'object': request.params![0]
+        }));
+        break;
+      case "wallet_addEthereumChain":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': 'wallet_addEthereumChain',
+          'object': request.params![0]
+        }));
         break;
       default:
+        break;
     }
   }
 

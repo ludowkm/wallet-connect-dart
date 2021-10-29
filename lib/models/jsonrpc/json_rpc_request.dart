@@ -8,7 +8,7 @@ part 'json_rpc_request.g.dart';
 class JsonRpcRequest {
   final int id;
   final String jsonrpc;
-  final WCMethod? method;
+  final String? method;
   final List<dynamic>? params;
   JsonRpcRequest({
     required this.id,

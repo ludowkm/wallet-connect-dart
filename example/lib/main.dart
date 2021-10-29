@@ -66,10 +66,6 @@ class _MyHomePageState extends State<MyHomePage> {
       onSessionRequest: _onSessionRequest,
       onFailure: _onSessionError,
       onDisconnect: _onSessionClosed,
-      onEthSign: _onSign,
-      onEthSignTransaction: _onSignTransaction,
-      onEthSendTransaction: _onSendTransaction,
-      onCustomRequest: (_, __) {},
       onConnect: _onConnect,
     );
     // TODO: Mention walletAddress and privateKey while connecting
