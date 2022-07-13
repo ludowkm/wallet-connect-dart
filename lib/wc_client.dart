@@ -347,13 +347,6 @@ class WCClient {
           'object': request.params![0]
         }));
         break;
-      case "wallet_addEthereumChain":
-        onRequest?.call(jsonEncode({
-          'id': request.id,
-          'name': 'wallet_addEthereumChain',
-          'object': request.params![0]
-        }));
-        break;
       default:
         break;
     }
