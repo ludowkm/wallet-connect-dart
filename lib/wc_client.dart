@@ -311,14 +311,14 @@ class WCClient {
         onRequest?.call(jsonEncode({
           'id': request.id,
           'name': 'signMessage',
-          'object': {'data': request.params![1]}
+          'object': {'data': request.params!}
         }));
         break;
       case "personal_sign":
         onRequest?.call(jsonEncode({
           'id': request.id,
           'name': 'signPersonalMessage',
-          'object': {'data': request.params![0]}
+          'object': {'data': request.params!}
         }));
         break;
       case "personal_ecRecover":
@@ -340,17 +340,17 @@ class WCClient {
           'object': {'raw': request.params![1], 'wcMethodName': request.method}
         }));
         break;
-      case "eth_sendTransaction":
+      case "eth_signTransaction":
         onRequest?.call(jsonEncode({
           'id': request.id,
           'name': 'eth_sendTransaction',
           'object': request.params![0]
         }));
         break;
-      case "wallet_addEthereumChain":
+      case "eth_sendTransaction":
         onRequest?.call(jsonEncode({
           'id': request.id,
-          'name': 'wallet_addEthereumChain',
+          'name': 'eth_sendTransaction',
           'object': request.params![0]
         }));
         break;
