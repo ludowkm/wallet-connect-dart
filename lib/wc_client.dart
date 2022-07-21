@@ -318,7 +318,7 @@ class WCClient {
         onRequest?.call(jsonEncode({
           'id': request.id,
           'name': 'signPersonalMessage',
-          'object': {'data': request.params![0]}
+          'object': {'data': request.params![1]}
         }));
         break;
       case "personal_ecRecover":
