@@ -508,7 +508,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   Expanded(
                     child: Text(
-                      '${EthConversions.weiToEthUnTrimmed(gasPrice * BigInt.parse(ethereumTransaction.gas), 18)} MATIC',
+                      '${EthConversions.weiToEthUnTrimmed(gasPrice * BigInt.parse(ethereumTransaction.gas!), 18)} MATIC',
                       style: TextStyle(fontSize: 16.0),
                     ),
                   ),
