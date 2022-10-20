@@ -331,6 +331,14 @@ class WCClient {
           }
         }));
         break;
+      case "wallet_addEthereumChain":
+      case "wallet_switchEthereumChain":
+        onRequest?.call(jsonEncode({
+          'id': request.id,
+          'name': request.method,
+          'object': request.params![0]
+        }));
+        break;
       case "eth_signTypedData":
       case "eth_signTypedData_v3":
       case "eth_signTypedData_v4":
