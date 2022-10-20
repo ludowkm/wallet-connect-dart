@@ -71,6 +71,8 @@ class WCClient {
 
   String? get remotePeerId => _remotePeerId;
 
+  bool get isConnected => _isConnected;
+
   connectNewSession({
     required WCSession session,
     required WCPeerMeta peerMeta,
@@ -130,7 +132,7 @@ class WCClient {
   }) async {
     final param = WCSessionUpdate(
       approved: approved,
-      chainId: _chainId ?? chainId,
+      chainId: chainId ?? _chainId,
       accounts: accounts,
     );
     final request = JsonRpcRequest(
