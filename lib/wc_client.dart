@@ -50,6 +50,7 @@ class WCClient {
       {this.onSessionRequest,
       this.onFailure,
       this.onDisconnect,
+      this.onDappDisconnect,
       this.onConnect,
       this.onRequest});
 
@@ -57,6 +58,7 @@ class WCClient {
   final SocketError? onFailure;
   final SocketClose? onDisconnect;
   final Function()? onConnect;
+  final Function()? onDappDisconnect;
   final OnRequest? onRequest;
 
   WCSession? get session => _session;
@@ -306,6 +308,7 @@ class WCClient {
         final param = WCSessionUpdate.fromJson(request.params!.first);
         print('SESSION_UPDATE $param');
         if (!param.approved) {
+          onDappDisconnect?.call();
           killSession();
         }
         break;
